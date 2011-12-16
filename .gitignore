@@ -1,3 +1,5 @@
 src/*.asn1db
 include/OCSP.hrl
+include/PKIX1*88.hrl
 src/OCSP.erl
+src/PKIX1*88.erl
