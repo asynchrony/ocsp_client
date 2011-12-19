@@ -8,8 +8,8 @@
 validate_cert_returns_error_when_revoke_message_returned_from_provider() ->
     stub(oc_request_data, get_request_data, 1, {issuername, issuerkey, serialnumber}),
     stub(oc_request_assembler, assemble_request, 3, assembled_request),
-    stub('OCSP', encode, 2, request_bytes),
-    stub(httpc, request, 4, {ok, ocsp_response}),
+    stub('OCSP', encode, 2, {ok, request_bytes}),
+    stub(httpc, request, 4, {ok, {{version, 200, description}, headers, ocsp_response}}),
     stub(oc_response_parser, parse, 1, {revoked, {'Reason', timestamp, asn1_NOVALUE}}),
 
     ?assertMatch({error, revoked}, oc_validator:validate_cert(peercert)),
@@ -23,8 +23,8 @@ validate_cert_returns_error_when_revoke_message_returned_from_provider() ->
 validate_cert_returns_ok_when_good_returned_from_provider() ->
     stub(oc_request_data, get_request_data, 1, {issuername, issuerkey, serialnumber}),
     stub(oc_request_assembler, assemble_request, 3, assembled_request),
-    stub('OCSP', encode, 2, request_bytes),
-    stub(httpc, request, 4, {ok, ocsp_response}),
+    stub('OCSP', encode, 2, {ok, request_bytes}),
+    stub(httpc, request, 4, {ok, {{version, 200, description}, headers, ocsp_response}}),
     stub(oc_response_parser, parse, 1, {good, 'NULL'}),
 
     ?assertMatch(ok, oc_validator:validate_cert(peercert)),
@@ -38,7 +38,7 @@ validate_cert_returns_ok_when_good_returned_from_provider() ->
 validate_cert_returns_ok_when_provider_request_returns_error() ->
     stub(oc_request_data, get_request_data, 1, {issuername, issuerkey, serialnumber}),
     stub(oc_request_assembler, assemble_request, 3, assembled_request),
-    stub('OCSP', encode, 2, request_bytes),
+    stub('OCSP', encode, 2, {ok, request_bytes}),
     stub(httpc, request, 4, {error, "reason"}),
 
     ?assertMatch(ok, oc_validator:validate_cert(peercert)),
