@@ -16,7 +16,7 @@ validate_cert(PeerCert) ->
                 _ ->
                     ok
             end;
-        Error ->
+        _Error ->
             ok
     end.
 
