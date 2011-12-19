@@ -10,7 +10,9 @@ validate_cert(PeerCert) ->
     RequestBytes = 'OCSP':encode('OCSPRequest', AssembledRequest),
     Response = httpc:request(post, {?OCSP_URL, "application/ocsp-request", [], RequestBytes}, [], []),
     case oc_response_parser:parse(Response) of
-        {revoked, {Reason, _, _}} ->
-            {error, revoked}
+        {revoked, {_Reason, _, _}} ->
+            {error, revoked};
+        _ ->
+            ok
     end.
 
