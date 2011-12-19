@@ -1,6 +1,6 @@
 -module(oc_request_data).
 
--export([get_request_data/1]).
+-export([get_request_data/1, generate_crypto_nonce/0]).
 
 -include_lib("public_key/include/public_key.hrl").
 -include("OCSP.hrl").
@@ -12,6 +12,9 @@ get_request_data(PeerCert) ->
     Serial = read_serial_number(PeerCert),
 
     {IssuerName, IssuerKey, Serial}.
+
+generate_crypto_nonce() ->
+    crypto:sha(crypto:rand_bytes(20)).
 
 read_serial_number(PeerCert) ->
     ClientCert = public_key:pkix_decode_cert(PeerCert, plain),

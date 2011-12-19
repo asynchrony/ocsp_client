@@ -37,3 +37,18 @@ get_request_data_should_return_issuer_issuer_key_peer_serial() ->
 %   lists:flatten([io_lib:format("~2.16.0B", [X]) ||
 %     X <- binary_to_list(Bin)]).
 
+get_crypto_nonce_should_return_unique_bitstring() ->
+    Nonce1 = oc_request_data:generate_crypto_nonce(),
+    Nonce2 = oc_request_data:generate_crypto_nonce(),
+    Nonce3 = oc_request_data:generate_crypto_nonce(),
+
+    ?assertEqual(20, size(Nonce1)),
+    ?assertEqual(20, size(Nonce2)),
+    ?assertEqual(20, size(Nonce3)),
+    ?assert(is_bitstring(Nonce1)),
+    ?assert(Nonce1 =/= Nonce2),
+    ?assert(Nonce2 =/= Nonce3),
+    ?assert(Nonce1 =/= Nonce3).
+
+
+
