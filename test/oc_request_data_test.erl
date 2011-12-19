@@ -9,12 +9,11 @@
 get_request_data_should_return_issuer_issuer_key_peer_serial() ->
     {ok, PemBinary} = file:read_file("../test/data/client_0001.pem"),
     [{_, PeerCert, _}] = public_key:pem_decode(PemBinary),
-    % PeerCert = public_key:pkix_decode_cert(PemEntry, plain),
-    
+
     {ok, CAChainPem} = file:read_file("../test/data/cacerts.pem"),
     CAChainEntries = public_key:pem_decode(CAChainPem),
 
-    fake(tls_certificate_repo, get_ca_chain, 0, CAChainEntries),
+    stub(tls_certificate_repo, get_ca_chain, 0, CAChainEntries),
 
     {IssuerName, IssuerKey, Serial} = oc_request_data:get_request_data(PeerCert),
 
