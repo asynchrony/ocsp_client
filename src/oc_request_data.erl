@@ -3,7 +3,7 @@
 -export([get_request_data/1]).
 
 -include_lib("public_key/include/public_key.hrl").
--include_lib("ocsp_client/include/OCSP.hrl").
+-include("OCSP.hrl").
 
 get_request_data(PeerCert) ->
     CAChain = tls_certificate_repo:get_ca_chain(),
