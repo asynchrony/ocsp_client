@@ -2,8 +2,8 @@
 
 -export([get_ca_chain/0]).
 
--define(CACERTS_PATH, "../../certs/testing/ca/cacerts.pem").
-
 get_ca_chain() ->
-    {ok, PemBinary} = file:read_file(?CACERTS_PATH),
+    {ok, TLSOptions} = application:get_env(transport, tls_options),
+    CACertFileName = proplists:get_value(cacertfile, TLSOptions),
+    {ok, PemBinary} = file:read_file(CACertFileName),
     public_key:pem_decode(PemBinary).
