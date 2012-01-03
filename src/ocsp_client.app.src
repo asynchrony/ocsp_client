@@ -1,7 +1,7 @@
 {application, ocsp_client,
  [
   {description, ""},
-  {vsn, "2.0.16"},
+  {vsn, {cmd, "git show --pretty=format:%RELEASE_VERSION%.%h%n -s HEAD"}},
   {registered, []},
   {applications, [
                   kernel,
