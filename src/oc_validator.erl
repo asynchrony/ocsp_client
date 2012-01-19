@@ -7,7 +7,7 @@ validate_cert(PeerCert) ->
     AssembledRequest = oc_request_assembler:assemble_request(IssuerName, IssuerKey, SerialNumber),
     {ok, RequestBytes} = 'OCSP':encode('OCSPRequest', AssembledRequest),
     {ok, ProviderURL} = application:get_env(ocsp_client, ocsp_provider_url),
-    case httpc:request(post, {ProviderURL, "application/ocsp-request", [], RequestBytes}, [], []) of
+    case httpc:request(post, {ProviderURL, [], "application/ocsp-request", RequestBytes}, [], []) of
         {ok, {{_Version, 200, _Description}, _Headers, Response}} ->
             case oc_response_parser:parse(Response) of
                 {revoked, {_Reason, _, _}} ->
