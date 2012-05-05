@@ -1,6 +1,6 @@
 -module(oc_request_assembler_test).
 -compile([export_all]).
--include("test_helper.hrl").
+-include_lib("test_support/include/test_helper.hrl").
 -include_lib("public_key/include/public_key.hrl").
 -include("OCSP.hrl").
 

@@ -1,6 +1,6 @@
 -module(oc_validator_test).
 -compile([export_all]).
--include("test_helper.hrl").
+-include_lib("test_support/include/test_helper.hrl").
 -include("OCSP.hrl").
 
 ?MOCK_FIXTURE.

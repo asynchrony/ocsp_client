@@ -1,6 +1,6 @@
 -module(tls_certificate_repo_test).
 -compile([export_all]).
--include("test_helper.hrl").
+-include_lib("test_support/include/test_helper.hrl").
 
 ?MOCK_FIXTURE.
 

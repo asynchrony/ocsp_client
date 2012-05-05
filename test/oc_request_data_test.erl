@@ -1,6 +1,6 @@
 -module(oc_request_data_test).
 
--include("test_helper.hrl").
+-include_lib("test_support/include/test_helper.hrl").
 
 -compile([export_all]).
 
