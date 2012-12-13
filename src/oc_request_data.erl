@@ -6,7 +6,8 @@
 -include("OCSP.hrl").
 
 get_request_data(PeerCert) ->
-    CAChain = tls_certificate_repo:get_ca_chain(),
+    PemBinary = mp_certificate_files:read(trust_chain),
+    CAChain = public_key:pem_decode(PemBinary),
     {IssuerName, IssuerKey} = get_issuer_info(PeerCert, CAChain),
 
     Serial = read_serial_number(PeerCert),
