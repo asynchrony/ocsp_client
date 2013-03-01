@@ -3,23 +3,36 @@
 -include("OCSP.hrl").
 
 parse(Body) ->
-    OCSPResponse = decode_basic_response(Body),
-    check_status(OCSPResponse#'SingleResponse'.certStatus).
+    {ok, OCSPResponse} = 'OCSP':decode('OCSPResponse', Body),
+    case check_response_status(OCSPResponse) of
+        {ok, Response} ->
+            {ok, BasicOCSPResponse} = 'OCSP':decode_TBSResponseData_exclusive(Response),
+            case validate_BasicOCSPResponse(BasicOCSPResponse) of
+                {ok, #'SingleResponse'{certStatus = CertStatus}} ->
+                    check_cert_status(CertStatus);
+                Error ->
+                    Error
+            end;
+        Error ->
+            Error
+    end.
 
-decode_basic_response(Body) ->
-    {ok, #'BasicOCSPResponse'{tbsResponseData = #'ResponseData' { responses = [Response] }}} =
-            'OCSP':decode('BasicOCSPResponse', decode_response_body(Body)),
-    Response.
+check_response_status(#'OCSPResponse'{responseStatus = successful,
+        responseBytes = ResponseBytes }) ->
+    check_response_bytes(ResponseBytes);
+check_response_status(#'OCSPResponse'{responseStatus = Error}) ->
+    {error, {ocsp, {responseStatus, Error}}}.
 
-decode_response_body(Body) ->
-    {ok, #'OCSPResponse'{
-        responseStatus = successful,
-        responseBytes =
-            #'ResponseBytes'{
-                responseType = ?'id-pkix-ocsp-basic',
-                response = BasicResponseBytes }}} = 'OCSP':decode('OCSPResponse', Body),
-    BasicResponseBytes.
+check_response_bytes(#'ResponseBytes'{responseType = ?'id-pkix-ocsp-basic',
+        response = Response }) ->
+    {ok, list_to_binary(Response)};
+check_response_bytes(_) ->
+    {error, {ocsp, unhandled_response_type}}.
 
-check_status({good, _}) -> ok;
-check_status({revoked, _}) -> {error, certificate_revoked};
-check_status({unknown, _}) -> {error, certificate_unknown_by_ocsp}.
+validate_BasicOCSPResponse(#'BasicOCSPResponse'{tbsResponseData = {Type, Binary}}) ->
+    {ok, #'ResponseData'{ responses = [Response] }} = 'OCSP':decode_part(Type, Binary),
+    {ok, Response}.
+
+check_cert_status({good, _}) -> ok;
+check_cert_status({revoked, _}) -> {error, certificate_revoked};
+check_cert_status({unknown, _}) -> {error, certificate_unknown_by_ocsp}.
