@@ -1,0 +1,3 @@
+%% vim: ft=erlang
+{exclusive_decode,{'OCSP', [{decode_TBSResponseData_exclusive,['BasicOCSPResponse',[{tbsResponseData,undecoded}]]}]}}.
+
