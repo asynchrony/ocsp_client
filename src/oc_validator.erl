@@ -4,7 +4,8 @@
 
 validate_cert(PeerCert, CAChain, ProviderURL) ->
     {IssuerName, IssuerKey, SerialNumber} = oc_request_data:get_request_data(PeerCert, CAChain),
-    AssembledRequest = oc_request_assembler:assemble_request(IssuerName, IssuerKey, SerialNumber),
+    Nonce = oc_request_data:generate_crypto_nonce(),
+    AssembledRequest = oc_request_assembler:assemble_request(IssuerName, IssuerKey, SerialNumber, Nonce),
     {ok, RequestBytes} = 'OCSP':encode('OCSPRequest', AssembledRequest),
     case httpc:request(post, {ProviderURL, [], "application/ocsp-request", RequestBytes}, [], []) of
         {ok, {{_Version, HttpCode, Description}, _Headers, Response}} ->
