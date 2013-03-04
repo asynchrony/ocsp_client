@@ -1,9 +1,9 @@
 -module(oc_validator).
--export([validate_cert/2]).
+-export([validate_cert/3]).
 -include("OCSP.hrl").
 
-validate_cert(PeerCert, ProviderURL) ->
-    {IssuerName, IssuerKey, SerialNumber} = oc_request_data:get_request_data(PeerCert),
+validate_cert(PeerCert, CAChain, ProviderURL) ->
+    {IssuerName, IssuerKey, SerialNumber} = oc_request_data:get_request_data(PeerCert, CAChain),
     AssembledRequest = oc_request_assembler:assemble_request(IssuerName, IssuerKey, SerialNumber),
     {ok, RequestBytes} = 'OCSP':encode('OCSPRequest', AssembledRequest),
     case httpc:request(post, {ProviderURL, [], "application/ocsp-request", RequestBytes}, [], []) of

@@ -1,13 +1,11 @@
 -module(oc_request_data).
 
--export([get_request_data/1, generate_crypto_nonce/0]).
+-export([get_request_data/2, generate_crypto_nonce/0]).
 
 -include_lib("public_key/include/public_key.hrl").
 -include("OCSP.hrl").
 
-get_request_data(PeerCert) ->
-    PemBinary = mp_certificate_files:read(trust_chain),
-    CAChain = public_key:pem_decode(PemBinary),
+get_request_data(PeerCert, CAChain) ->
     {IssuerName, IssuerKey} = get_issuer_info(PeerCert, CAChain),
 
     Serial = read_serial_number(PeerCert),
@@ -23,8 +21,8 @@ read_serial_number(PeerCert) ->
     SerialNumber.
 
 find_issuer(Cert, CAChain) ->
-    [IssuerCert] = [public_key:pkix_decode_cert(PotentialIssuer, plain) || 
-        {_, PotentialIssuer, _} <- CAChain, public_key:pkix_is_issuer(Cert, PotentialIssuer)],
+    [IssuerCert] = [public_key:pkix_decode_cert(PotentialIssuer, plain) ||
+        PotentialIssuer <- CAChain, public_key:pkix_is_issuer(Cert, PotentialIssuer)],
     IssuerCert.
 
 get_issuer_info(Cert, CAChain) ->

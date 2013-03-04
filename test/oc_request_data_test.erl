@@ -11,12 +11,9 @@ get_request_data_should_return_issuer_issuer_key_peer_serial() ->
     [{_, PeerCert, _}] = public_key:pem_decode(PemBinary),
 
     {ok, CAChainPem} = file:read_file("../test/data/cacerts.pem"),
+    CAChain = [ CA || {_, CA, _} <- public_key:pem_decode(CAChainPem) ],
 
-    stub(mp_certificate_files, read, 1, CAChainPem),
-
-    {IssuerName, IssuerKey, Serial} = oc_request_data:get_request_data(PeerCert),
-
-    ?assert(meck:called(mp_certificate_files, read, [trust_chain])),
+    {IssuerName, IssuerKey, Serial} = oc_request_data:get_request_data(PeerCert, CAChain),
 
     ExpectedIssuerName = <<48,129,135,49,11,48,9,6,3,85,4,6,19,2,85,83,49,24,48,22,6,3,85,4,10,19,15,85,
                            46,83,46,32,71,111,118,101,114,110,109,101,110,116,49,12,48,10,6,3,85,4,11,
