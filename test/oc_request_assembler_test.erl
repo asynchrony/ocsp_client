@@ -5,18 +5,33 @@
 -include("OCSP.hrl").
 
 assemble_request_returns_proper_request_with_nonce_in_bytes_test() ->
-    Nonce = <<"NONCE">>,
-    IssuerName = <<"Test Issuer">>,
-    IssuerKey = <<"Test Key">>,
-    SerialNumber = 1,
-    CertId = #'CertID'{ hashAlgorithm = #'AlgorithmIdentifier'{ algorithm = ?'id-sha1', parameters = <<5,0>> },
-                        issuerNameHash = crypto:sha(IssuerName),
-                        issuerKeyHash = crypto:sha(IssuerKey),
-                        serialNumber = SerialNumber },
-    NonceExtension = #'Extension'{ extnID = ?'id-pkix-ocsp-nonce',
-                                   critical = false,
-                                   extnValue = Nonce },
-    ExpectedRequest = #'OCSPRequest'{ tbsRequest = #'TBSRequest'{ requestList = [ #'Request' { reqCert = CertId } ],
-                                 requestExtensions = [NonceExtension] } },
+    Result = oc_request_assembler:assemble_request(peer_cert(), ca_chain(),
+                                                  server_cert(), private_key(),
+                                                  nonce()),
 
-    ?assertMatch(ExpectedRequest, oc_request_assembler:assemble_request(IssuerName, IssuerKey, SerialNumber, Nonce)).
+    {ok, ExpectedBytes} = file:read_file("../test/data/request.der"),
+
+    ?assertEqual(ExpectedBytes, Result).
+
+server_cert() ->
+    {ok, Pem} = file:read_file("../test/data/servercert.pem"),
+    [Entry] = public_key:pem_decode(Pem),
+    public_key:pem_entry_decode(Entry).
+
+private_key() ->
+    {ok, Pem} = file:read_file("../test/data/serverkey.pem"),
+    [Entry] = public_key:pem_decode(Pem),
+    public_key:pem_entry_decode(Entry).
+
+peer_cert() ->
+    {ok, Pem} = file:read_file("../test/data/client_0001.pem"),
+    [{'Certificate', Cert, not_encrypted}] = public_key:pem_decode(Pem),
+    Cert.
+
+ca_chain() ->
+    {ok, Pem} = file:read_file("../test/data/cacerts.pem"),
+    Entries = public_key:pem_decode(Pem),
+    [ Cert || {'Certificate', Cert, not_encrypted} <- Entries ].
+
+nonce() ->
+    <<4,16,255,87,102,12,79,88,42,40,174,36,68,64,180,151,170,21>>.
