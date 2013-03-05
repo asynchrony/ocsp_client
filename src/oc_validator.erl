@@ -10,7 +10,7 @@ validate_cert(PeerCert, CAChain, ProviderURL) ->
     case httpc:request(post, {ProviderURL, [], "application/ocsp-request", RequestBytes}, [], []) of
         {ok, {{_Version, HttpCode, Description}, _Headers, Response}} ->
             case HttpCode of
-                200 -> oc_response_parser:parse(Response);
+                200 -> oc_response_parser:parse(Response, Nonce);
                 _   -> {error, {HttpCode, Description, Response}}
             end;
         {error, Reason} ->

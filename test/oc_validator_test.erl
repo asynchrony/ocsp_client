@@ -37,12 +37,12 @@ validate_cert_returns_parser_result_when_request_returns_200_http_code() ->
     stub(oc_request_assembler, assemble_request, 4, assembled_request),
     stub('OCSP', encode, 2, {ok, request_bytes}),
     stub(httpc, request, 4, {ok, {{version, 200, description}, headers, ocsp_response}}),
-    stub(oc_response_parser, parse, 1, parser_result),
+    stub(oc_response_parser, parse, 2, parser_result),
 
     ?assertMatch(parser_result, oc_validator:validate_cert(peercert, ca_chain, "provider url")),
 
     ?assert(meck:called(oc_request_data, get_request_data, [peercert, ca_chain])),
     ?assert(meck:called(oc_request_assembler, assemble_request, [issuername, issuerkey, serialnumber, crypto_nonce])),
     ?assert(meck:called('OCSP', encode, ['OCSPRequest', assembled_request])),
-    ?assert(meck:called(oc_response_parser, parse, [ocsp_response])).
+    ?assert(meck:called(oc_response_parser, parse, [ocsp_response, crypto_nonce])).
 
