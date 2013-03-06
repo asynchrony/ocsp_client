@@ -1,16 +1,15 @@
 -module(oc_request_assembler).
--export([assemble_request/5]).
+-export([assemble_request/4, assemble_cert_id/2]).
 
 -include_lib("public_key/include/public_key.hrl").
 -include("OCSP.hrl").
 
 -define(DER_NULL, <<5,0>>). %% public_key defines this, but not in a HRL.
 
-assemble_request(PeerCert, CAChain, RequestorCert, RequestorPrivateKey, Nonce) ->
-    IssuerCert = oc_certificate:find_issuer(PeerCert, CAChain),
+assemble_request(CertID, RequestorCert, RequestorPrivateKey, Nonce) ->
     TBSRequest = #'TBSRequest'{
         requestorName = {directoryName, oc_certificate:subject_name(RequestorCert)},
-        requestList = [ request(PeerCert, IssuerCert) ],
+        requestList = [ #'Request'{ reqCert = CertID } ],
         requestExtensions = [ nonce_extension(Nonce) ]
     },
     Signature = sign(TBSRequest, RequestorCert, RequestorPrivateKey),
@@ -47,10 +46,8 @@ signature_algorithm() ->
         parameters = ?DER_NULL
     }.
 
-request(PeerCert, IssuerCert) ->
-    #'Request'{ reqCert = cert_id(PeerCert, IssuerCert) }.
-
-cert_id(PeerCert, IssuerCert) ->
+assemble_cert_id(PeerCert, CAChain) ->
+    IssuerCert = oc_certificate:find_issuer(PeerCert, CAChain),
     #'CertID'{
         hashAlgorithm  = hash_algorithm(),
         issuerNameHash = oc_certificate:hash_subject_name(sha, IssuerCert),

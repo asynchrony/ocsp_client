@@ -2,6 +2,7 @@
 -compile([export_all]).
 -include_lib("test_support/include/test_helper.hrl").
 -include_lib("public_key/include/public_key.hrl").
+-include("OCSP.hrl").
 
 ?MOCK_FIXTURE.
 
@@ -22,23 +23,38 @@ assemble_request_returns_proper_request_with_nonce_in_bytes() ->
     ServerCert = test_support:decode_pem_file("servercert.pem"),
     RequestorName = oc_certificate:subject_name(ServerCert),
 
-    stub(oc_certificate, find_issuer, 2, issuer_cert),
     stub(oc_certificate, subject_name, 1, RequestorName),
-    stub(oc_certificate, serial_number, 1, ?PEER_CERT_SERIAL),
-    stub(oc_certificate, hash_subject_name, 2, ?ISSUER_NAME_HASH),
-    stub(oc_certificate, hash_subject_public_key, 2, ?ISSUER_KEY_HASH),
     stub(public_key, sign, 3, ?SIGNATURE),
 
-    Result = oc_request_assembler:assemble_request(peer_cert, ca_chain,
-                                                   ServerCert, server_key,
-                                                   ?NONCE),
+    CertID = #'CertID'{
+        hashAlgorithm  = #'AlgorithmIdentifier'{ algorithm = ?'id-sha1', parameters = <<5,0>> },
+        issuerNameHash = ?ISSUER_NAME_HASH,
+        issuerKeyHash  = ?ISSUER_KEY_HASH,
+        serialNumber   = ?PEER_CERT_SERIAL
+    },
+    Result = oc_request_assembler:assemble_request(CertID, ServerCert, server_key, ?NONCE),
 
     ExpectedBytes = test_support:read_data("request.der"),
 
     ?assertEqual(ExpectedBytes, Result),
+    ?assert(meck:called(oc_certificate, subject_name, [ServerCert])).
+
+assemble_cert_id_returns_proper_record() ->
+    stub(oc_certificate, find_issuer, 2, issuer_cert),
+    stub(oc_certificate, serial_number, 1, peer_cert_serial),
+    stub(oc_certificate, hash_subject_name, 2, issuer_name_hash),
+    stub(oc_certificate, hash_subject_public_key, 2, issuer_key_hash),
+
+    Result = oc_request_assembler:assemble_cert_id(peer_cert, ca_chain),
+
+    Expected = #'CertID'{
+        hashAlgorithm  = #'AlgorithmIdentifier'{ algorithm = ?'id-sha1', parameters = <<5,0>> },
+        issuerNameHash = issuer_name_hash,
+        issuerKeyHash  = issuer_key_hash,
+        serialNumber   = peer_cert_serial
+    },
+    ?assertEqual(Expected, Result),
     ?assert(meck:called(oc_certificate, find_issuer, [peer_cert, ca_chain])),
-    ?assert(meck:called(oc_certificate, subject_name, [ServerCert])),
     ?assert(meck:called(oc_certificate, serial_number, [peer_cert])),
     ?assert(meck:called(oc_certificate, hash_subject_name, [sha, issuer_cert])),
     ?assert(meck:called(oc_certificate, hash_subject_public_key, [sha, issuer_cert])).
-
