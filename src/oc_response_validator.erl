@@ -57,8 +57,8 @@ compare_items(Same, Same, _) -> return(ok);
 compare_items(_, _, Error)   -> fail(Error).
 
 validate_certStatus(good)    -> return(ok);
-validate_certStatus(revoked) -> fail(certificate_revoked);
-validate_certStatus(unknown) -> fail(certificate_unknown_by_ocsp).
+validate_certStatus(revoked) -> fail({ocsp, certificate_revoked});
+validate_certStatus(unknown) -> fail({ocsp, certificate_unknown}).
 
 normalize_cert_id(CertID = #'CertID'{issuerNameHash = NameHash,
                                      issuerKeyHash = KeyHash}) ->

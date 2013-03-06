@@ -33,11 +33,11 @@ validate_should_return_error_when_unhandled_response_type_test() ->
 
 validate_should_return_error_when_cert_status_is_revoked_test() ->
     Response = test_support:read_data("revoked_response.der"),
-    ?assertMatch({error, certificate_revoked}, oc_response_validator:validate(Response, ?CERT_ID(4), ?REVOKED_RESPONSE_NONCE)).
+    ?assertMatch({error, {ocsp, certificate_revoked}}, oc_response_validator:validate(Response, ?CERT_ID(4), ?REVOKED_RESPONSE_NONCE)).
 
 validate_should_return_error_when_cert_status_is_unknown_test() ->
     Response = test_support:read_data("unknown_response.der"),
-    ?assertMatch({error, certificate_unknown_by_ocsp}, oc_response_validator:validate(Response, ?CERT_ID(24), ?UNKNOWN_RESPONSE_NONCE)).
+    ?assertMatch({error, {ocsp, certificate_unknown}}, oc_response_validator:validate(Response, ?CERT_ID(24), ?UNKNOWN_RESPONSE_NONCE)).
 
 validate_should_return_error_when_nonce_does_not_match_test() ->
     Response = test_support:read_data("good_response.der"),
