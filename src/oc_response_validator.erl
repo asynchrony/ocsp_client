@@ -1,11 +1,11 @@
 -module(oc_response_validator).
--export([validate/2]).
+-export([validate/3]).
 -include("OCSP.hrl").
 -include_lib("public_key/include/public_key.hrl").
 
 -compile([{parse_transform, do}]).
 
-validate(Body, Nonce) ->
+validate(Body, CertID, Nonce) ->
     do([error_m ||
             OCSPResponse  <- 'OCSP':decode('OCSPResponse', Body),
             ResponseBytes <- response_bytes(OCSPResponse),
@@ -15,10 +15,12 @@ validate(Body, Nonce) ->
             } <- 'OCSP':decode_TBSResponseData_exclusive(BinaryResponse),
             #'ResponseData'{
                 responses = [ #'SingleResponse'{
+                        certID     = ResponseCertID,
                         certStatus = {CertStatus, _}
                     } ],
                 responseExtensions = Extensions
             } <- 'OCSP':decode_part(Type, Binary),
+            compare_items(CertID, normalize_cert_id(ResponseCertID), {ocsp, cert_id_mismatch}),
             ResponseNonce = find_nonce(Extensions),
             compare_items(Nonce, ResponseNonce, {ocsp, nonce_mismatch}),
             validate_certStatus(CertStatus)
@@ -49,3 +51,9 @@ compare_items(_, _, Error)   -> {error, Error}.
 validate_certStatus(good)    -> ok;
 validate_certStatus(revoked) -> {error, certificate_revoked};
 validate_certStatus(unknown) -> {error, certificate_unknown_by_ocsp}.
+
+normalize_cert_id(CertID = #'CertID'{issuerNameHash = NameHash, issuerKeyHash = KeyHash}) ->
+    CertID#'CertID'{
+        issuerNameHash = list_to_binary(NameHash),
+        issuerKeyHash  = list_to_binary(KeyHash)
+    }.
