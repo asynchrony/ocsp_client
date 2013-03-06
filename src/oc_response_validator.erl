@@ -4,15 +4,18 @@
 -include_lib("public_key/include/public_key.hrl").
 
 -compile([{parse_transform, do}]).
+-import(error_m, [return/1, fail/1]).
 
 validate(Body, CertID, Nonce) ->
     do([error_m ||
             OCSPResponse  <- 'OCSP':decode('OCSPResponse', Body),
             ResponseBytes <- response_bytes(OCSPResponse),
             BinaryResponse <- response(ResponseBytes),
+
             #'BasicOCSPResponse'{
                 tbsResponseData = {Type, Binary}
             } <- 'OCSP':decode_TBSResponseData_exclusive(BinaryResponse),
+
             #'ResponseData'{
                 responses = [ #'SingleResponse'{
                         certID     = ResponseCertID,
@@ -20,39 +23,45 @@ validate(Body, CertID, Nonce) ->
                     } ],
                 responseExtensions = Extensions
             } <- 'OCSP':decode_part(Type, Binary),
-            compare_items(CertID, normalize_cert_id(ResponseCertID), {ocsp, cert_id_mismatch}),
-            ResponseNonce = find_nonce(Extensions),
+
+            compare_items(CertID,
+                          normalize_cert_id(ResponseCertID),
+                          {ocsp, cert_id_mismatch}),
+
+            ResponseNonce <- find_nonce(Extensions),
             compare_items(Nonce, ResponseNonce, {ocsp, nonce_mismatch}),
             validate_certStatus(CertStatus)
         ]).
 
 response_bytes(#'OCSPResponse'{ responseStatus = successful,
         responseBytes = ResponseBytes } ) ->
-    {ok, ResponseBytes};
+    return(ResponseBytes);
 response_bytes(#'OCSPResponse'{responseStatus = Error}) ->
-    {error, {ocsp, {responseStatus, Error}}}.
+    fail({ocsp, {responseStatus, Error}}).
 
 response(#'ResponseBytes'{ responseType = ?'id-pkix-ocsp-basic',
         response = Response }) ->
-    {ok, list_to_binary(Response)};
+    return(list_to_binary(Response));
 response(_) ->
-    {error, {ocsp, unhandled_response_type}}.
+    fail({ocsp, unhandled_response_type}).
 
 find_nonce([]) ->
-    {error, {ocsp, response_nonce_missing}};
-find_nonce([ #'Extension'{extnID = ?'id-pkix-ocsp-nonce', extnValue = Value} | _ ]) ->
-    list_to_binary(Value);
+    fail({ocsp, response_nonce_missing});
+find_nonce([ #'Extension'{extnID = ?'id-pkix-ocsp-nonce',
+                          extnValue = Value} | _ ]) ->
+    return(list_to_binary(Value));
 find_nonce([ _Other | Rest ]) ->
     find_nonce(Rest).
 
-compare_items(Same, Same, _) -> ok;
-compare_items(_, _, Error)   -> {error, Error}.
+compare_items(Same, Same, _) -> return(ok);
+compare_items(_, _, Error)   -> fail(Error).
 
-validate_certStatus(good)    -> ok;
-validate_certStatus(revoked) -> {error, certificate_revoked};
-validate_certStatus(unknown) -> {error, certificate_unknown_by_ocsp}.
+validate_certStatus(good)    -> return(ok);
+validate_certStatus(revoked) -> fail(certificate_revoked);
+validate_certStatus(unknown) -> fail(certificate_unknown_by_ocsp).
 
-normalize_cert_id(CertID = #'CertID'{issuerNameHash = NameHash, issuerKeyHash = KeyHash}) ->
+normalize_cert_id(CertID = #'CertID'{issuerNameHash = NameHash,
+                                     issuerKeyHash = KeyHash}) ->
     CertID#'CertID'{
         issuerNameHash = list_to_binary(NameHash),
         issuerKeyHash  = list_to_binary(KeyHash)
