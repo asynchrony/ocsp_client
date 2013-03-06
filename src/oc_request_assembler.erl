@@ -7,40 +7,57 @@
 -define(DER_NULL, <<5,0>>). %% public_key defines this, but not in a HRL.
 
 assemble_request(PeerCert, CAChain, RequestorCert, RequestorPrivateKey, Nonce) ->
-    {IssuerName, IssuerKey, SerialNumber} = oc_request_data:get_request_data(PeerCert, CAChain),
+    IssuerCert = oc_certificate:find_issuer(PeerCert, CAChain),
     TBSRequest = #'TBSRequest'{
-        requestorName = {directoryName, RequestorCert#'Certificate'.tbsCertificate#'TBSCertificate'.subject},
-        requestList = [ #'Request' {
-                                        reqCert = populate_certificate_id(IssuerName, IssuerKey, SerialNumber)
-                                    }],
-                                requestExtensions = [nonce_extension(Nonce)] },
-    Signature = do_sign(TBSRequest, RequestorPrivateKey),
-    Req = #'OCSPRequest'{ tbsRequest = TBSRequest, optionalSignature = #'Signature'{
-        signatureAlgorithm = algorithm(?'sha1WithRSAEncryption'),
-        signature = {0, Signature},
-        certs = [RequestorCert]
-    } },
-    {ok, IoData} = 'OCSP':encode('OCSPRequest', Req),
-    iolist_to_binary(IoData).
-
-populate_certificate_id(IssuerName, IssuerKey, SerialNumber) ->
-    #'CertID'{ hashAlgorithm = algorithm(?'id-sha1'),
-               issuerNameHash = crypto:sha(IssuerName),
-               issuerKeyHash = crypto:sha(IssuerKey),
-               serialNumber = SerialNumber }.
+        requestorName = {directoryName, oc_certificate:subject_name(RequestorCert)},
+        requestList = [ request(PeerCert, IssuerCert) ],
+        requestExtensions = [ nonce_extension(Nonce) ]
+    },
+    Signature = sign(TBSRequest, RequestorCert, RequestorPrivateKey),
+    encode(#'OCSPRequest'{
+            tbsRequest = TBSRequest,
+            optionalSignature = Signature
+        }).
 
 nonce_extension(Nonce) ->
-    #'Extension'{ extnID = ?'id-pkix-ocsp-nonce',
-                  critical = false,
-                  extnValue = Nonce }.
+    #'Extension'{
+        extnID    = ?'id-pkix-ocsp-nonce',
+        critical  = false,
+        extnValue = Nonce
+    }.
 
-do_sign(TBSRequest, PrivateKey) ->
-    {ok, IoData} = 'OCSP':encode('TBSRequest', TBSRequest),
-    Msg = iolist_to_binary(IoData),
-    public_key:sign(Msg, sha, PrivateKey).
+sign(TBSRequest, RequestorCert, PrivateKey) ->
+    Msg = encode(TBSRequest),
+    Signature = public_key:sign(Msg, sha, PrivateKey),
+    #'Signature'{
+        signatureAlgorithm = signature_algorithm(),
+        signature = {0, Signature},
+        certs = [ RequestorCert ]
+    }.
 
-algorithm(Alg) ->
+hash_algorithm() ->
     #'AlgorithmIdentifier'{
-        algorithm = Alg,
+        algorithm = ?'id-sha1',
         parameters = ?DER_NULL
     }.
+
+signature_algorithm() ->
+    #'AlgorithmIdentifier'{
+        algorithm = ?'sha1WithRSAEncryption',
+        parameters = ?DER_NULL
+    }.
+
+request(PeerCert, IssuerCert) ->
+    #'Request'{ reqCert = cert_id(PeerCert, IssuerCert) }.
+
+cert_id(PeerCert, IssuerCert) ->
+    #'CertID'{
+        hashAlgorithm  = hash_algorithm(),
+        issuerNameHash = oc_certificate:hash_subject_name(sha, IssuerCert),
+        issuerKeyHash  = oc_certificate:hash_subject_public_key(sha, IssuerCert),
+        serialNumber   = oc_certificate:serial_number(PeerCert)
+    }.
+
+encode(Record) ->
+    {ok, IoData} = 'OCSP':encode(element(1, Record), Record),
+    iolist_to_binary(IoData).
