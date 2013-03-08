@@ -13,12 +13,13 @@ subject_name_when_cert_is_binary_test() ->
     ?assertEqual(ExpectedSubject, Result).
 
 subject_public_key_when_cert_is_binary_test() ->
-    ExpectedPublicKey = <<48,72,2,65,0,196,117,54,55,134,71,97,174,156,195,
-                          40,173,65,46,196,69,54,243,26,85,113,100,144,21,
-                          139,206,10,55,72,80,138,205,240,239,173,18,45,134,
-                          137,100,17,179,249,71,209,162,164,208,221,223,170,
-                          73,72,200, 246,15,139,32,40,35,89,51,249,255,2,3,
-                          1,0,1>>,
+    ExpectedPublicKey = #'RSAPublicKey'{
+        modulus = list_to_integer("C4753637864761AE9CC328AD412EC44536F31A55716"
+                                  "490158BCE0A3748508ACDF0EFAD122D86896411B3F9"
+                                  "47D1A2A4D0DDDFAA4948C8F60F8B2028235933F9FF",
+                                  16),
+        publicExponent = 65537
+    },
     [{_,Cert,_}] = test_support:read_pem_data("servercert.pem"),
     Result = oc_certificate:subject_public_key(Cert),
     ?assertEqual(ExpectedPublicKey, Result).

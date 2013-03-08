@@ -10,31 +10,39 @@ validate(Body, CertID, Nonce) ->
     do([error_m ||
             OCSPResponse  <- 'OCSP':decode('OCSPResponse', Body),
             ResponseBytes <- response_bytes(OCSPResponse),
-            BinaryResponse <- response(ResponseBytes),
+            EncodedBasicResponse <- response(ResponseBytes),
 
             #'BasicOCSPResponse'{
-                tbsResponseData = {Type, Binary}
-            } <- 'OCSP':decode_TBSResponseData_exclusive(BinaryResponse),
+                tbsResponseData = {PartType, Binary},
+                signatureAlgorithm = Algorithm,
+                signature = {_, Signature},
+                certs = Certs
+            } <- 'OCSP':decode_TBSResponseData_exclusive(EncodedBasicResponse),
 
             #'ResponseData'{
+                responderID = ResponderID,
                 responses = [ #'SingleResponse'{
                         certID     = ResponseCertID,
                         certStatus = {CertStatus, _}
                     } ],
                 responseExtensions = Extensions
-            } <- 'OCSP':decode_part(Type, Binary),
+            } <- 'OCSP':decode_part(PartType, Binary),
 
             compare_items(CertID,
                           normalize_cert_id(ResponseCertID),
                           {ocsp, cert_id_mismatch}),
-
             ResponseNonce <- find_nonce(Extensions),
             compare_items(Nonce, ResponseNonce, {ocsp, nonce_mismatch}),
+
+            SignerCert <- find_signer_cert(ResponderID, Certs),
+
+            verify_signature(Binary, Signature, Algorithm, SignerCert),
+
             validate_certStatus(CertStatus)
         ]).
 
 response_bytes(#'OCSPResponse'{ responseStatus = successful,
-        responseBytes = ResponseBytes } ) ->
+        responseBytes = ResponseBytes }) ->
     return(ResponseBytes);
 response_bytes(#'OCSPResponse'{responseStatus = Error}) ->
     fail({ocsp, {responseStatus, Error}}).
@@ -66,3 +74,29 @@ normalize_cert_id(CertID = #'CertID'{issuerNameHash = NameHash,
         issuerNameHash = list_to_binary(NameHash),
         issuerKeyHash  = list_to_binary(KeyHash)
     }.
+
+find_signer_cert(_, Certs) when not is_list(Certs) ->
+    fail({ocsp, signer_cert_not_found});
+find_signer_cert(_, []) ->
+    fail({ocsp, signer_cert_not_found});
+find_signer_cert(ResponderID, [ Cert | Rest ]) ->
+    case is_responder_cert(ResponderID, Cert) of
+        true  -> return(Cert);
+        false -> find_signer_cert(ResponderID, Rest)
+    end.
+
+is_responder_cert({byName, Name}, Cert) ->
+    Name == oc_certificate:subject_name(Cert);
+is_responder_cert({byKey, KeyHash}, Cert) ->
+    list_to_binary(KeyHash) == oc_certificate:hash_subject_public_key(sha, Cert).
+
+-spec verify_signature( binary(), binary(), #'AlgorithmIdentifier'{},
+                        #'Certificate'{} ) -> ok | {error, {ocsp, bad_signature}}.
+verify_signature(Msg, Signature, AlgID, Signer) ->
+    #'AlgorithmIdentifier'{ algorithm = Algorithm } = AlgID,
+    Digest = pubkey_cert:digest_type(Algorithm),
+    Key = oc_certificate:subject_public_key(Signer),
+    case public_key:verify(Msg, Digest, Signature, Key) of
+        true -> return(ok);
+        false -> fail({ocsp, bad_signature})
+    end.

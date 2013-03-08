@@ -22,15 +22,20 @@ subject_name(#'Certificate'{tbsCertificate = TBSCertificate}) ->
 subject_name(#'TBSCertificate'{subject = Subject}) ->
     Subject.
 
--spec subject_public_key( certificate() ) -> binary().
+-spec subject_public_key( certificate() ) -> rsa_public_key() | dsa_public_key().
 subject_public_key(Certificate) when is_binary(Certificate) ->
     subject_public_key(public_key:pkix_decode_cert(Certificate, plain));
 subject_public_key(#'Certificate'{tbsCertificate = TBSCertificate}) ->
     subject_public_key(TBSCertificate);
 subject_public_key(#'TBSCertificate'{subjectPublicKeyInfo = Info}) ->
     subject_public_key(Info);
-subject_public_key(#'SubjectPublicKeyInfo'{subjectPublicKey = {_, Key}}) ->
-    Key.
+subject_public_key(#'SubjectPublicKeyInfo'{
+        algorithm = #'AlgorithmIdentifier'{ algorithm = Algo },
+        subjectPublicKey = {0, BinaryPublicKey}
+    }) ->
+    Type = pubkey_cert_records:supportedPublicKeyAlgorithms(Algo),
+    {ok, PublicKey} = 'OTP-PUB-KEY':decode(Type, BinaryPublicKey),
+    PublicKey.
 
 -spec serial_number( certificate() ) -> integer().
 serial_number(Certificate) when is_binary(Certificate) ->
@@ -56,8 +61,14 @@ hash_subject_name(Alg, Certificate) ->
     hash(Alg, public_key:der_encode('Name', subject_name(Certificate))).
 
 -spec hash_subject_public_key( hash_algorithm(), certificate() ) -> binary().
-hash_subject_public_key(Alg, Certificate) ->
-    hash(Alg, subject_public_key(Certificate)).
+hash_subject_public_key(Alg, Certificate) when is_binary(Certificate) ->
+    hash_subject_public_key(Alg, public_key:pkix_decode_cert(Certificate, plain));
+hash_subject_public_key(Alg, #'Certificate'{tbsCertificate = TBSCertificate}) ->
+    hash_subject_public_key(Alg, TBSCertificate);
+hash_subject_public_key(Alg, #'TBSCertificate'{subjectPublicKeyInfo = Info}) ->
+    hash_subject_public_key(Alg, Info);
+hash_subject_public_key(Alg, #'SubjectPublicKeyInfo'{subjectPublicKey = {_, Key}}) ->
+    hash(Alg, Key).
 
 hash(sha, Binary) when is_binary(Binary) ->
     crypto:sha(Binary).
