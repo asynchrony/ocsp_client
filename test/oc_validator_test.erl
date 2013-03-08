@@ -11,7 +11,7 @@ validate_cert_returns_error_when_provider_request_returns_error() ->
     stub(oc_request_assembler, assemble_request, 4, assembled_request),
     stub(httpc, request, 4, {error, "reason"}),
 
-    ?assertMatch({error, "reason"}, oc_validator:validate_cert(peercert, ca_chain, requestor_cert, requestor_key, "provider url")),
+    ?assertMatch({error, {ocsp, "reason"}}, oc_validator:validate_cert(peercert, ca_chain, requestor_cert, requestor_key, "provider url")),
 
     ?assert(meck:called(httpc, request, [post, {"provider url", [], "application/ocsp-request", assembled_request}, [], []])),
     ?assert(meck:called(oc_request_assembler, assemble_cert_id, [peercert, ca_chain])),
@@ -23,7 +23,7 @@ validate_cert_returns_error_when_provider_request_returns_non_200_http_code() ->
     stub(oc_request_assembler, assemble_request, 4, assembled_request),
     stub(httpc, request, 4, {ok, {{version, 500, description}, headers, error_response}}),
 
-    ?assertMatch({error, {500, description, error_response}}, oc_validator:validate_cert(peercert, ca_chain, requestor_cert, requestor_key, "provider url")),
+    ?assertMatch({error, {ocsp, {500, description, error_response}}}, oc_validator:validate_cert(peercert, ca_chain, requestor_cert, requestor_key, "provider url")),
 
     ?assert(meck:called(httpc, request, [post, {"provider url", [], "application/ocsp-request", assembled_request}, [], []])),
     ?assert(meck:called(oc_request_assembler, assemble_cert_id, [peercert, ca_chain])),

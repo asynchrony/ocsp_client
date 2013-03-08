@@ -10,9 +10,9 @@ validate_cert(PeerCert, CAChain, RequestorCert, RequestorPrivateKey, ProviderURL
         {ok, {{_Version, HttpCode, Description}, _Headers, Response}} ->
             case HttpCode of
                 200 -> oc_response_validator:validate(Response, CertID, Nonce);
-                _   -> {error, {HttpCode, Description, Response}}
+                _   -> {error, {ocsp, {HttpCode, Description, Response}}}
             end;
         {error, Reason} ->
-            {error, Reason}
+            {error, {ocsp, Reason}}
     end.
 
