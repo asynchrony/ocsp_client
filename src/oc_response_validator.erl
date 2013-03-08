@@ -36,6 +36,11 @@ validate(Body, CertID, Nonce) ->
 
             SignerCert <- find_signer_cert(ResponderID, Certs),
 
+            %% TODO: pkix_path_validation of SignerCert
+            %% TODO: ensure SignerCert is the peer's issuer -OR-
+            %%       (SignerCert's issuer is peer's issuer -AND-
+            %%        SignerCert has extendedKeyUsage of id-kp-ocspSigning
+
             verify_signature(Binary, Signature, Algorithm, SignerCert),
 
             validate_certStatus(CertStatus)
