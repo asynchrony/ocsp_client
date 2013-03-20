@@ -32,7 +32,7 @@ serial_number_when_cert_is_binary_test() ->
 
 find_issuer_should_return_record_when_issuer_found_test() ->
     [{_,PeerCert,_}] = test_support:read_pem_data("client_0001.pem"),
-    ExpectedIssuer = test_support:decode_pem_file("issuer.pem"),
+    ExpectedIssuer = test_support:decode_pem_entry("issuer.pem"),
     CAChain = [CA || {_,CA,_} <- test_support:read_pem_data("cacerts.pem")],
 
     Result = oc_certificate:find_issuer(PeerCert, CAChain),
@@ -49,14 +49,14 @@ find_issuer_should_return_error_when_issuer_not_found_test() ->
 hash_subject_name_test() ->
     ExpectedHash = <<134,75,228,227,251,240,172,74,112,226,223,165,
                      231,203,13,103,207,133,223,103>>,
-    Cert = test_support:decode_pem_file("servercert.pem"),
+    Cert = test_support:decode_pem_entry("servercert.pem"),
     Result = oc_certificate:hash_subject_name(sha, Cert),
     ?assertEqual(ExpectedHash, Result).
 
 hash_subject_public_key_test() ->
     ExpectedHash = <<185,230,105,219,172,23,75,64,168,22,166,179,182,
                      78,232,113,150,101,223,126>>,
-    Cert = test_support:decode_pem_file("servercert.pem"),
+    Cert = test_support:decode_pem_entry("servercert.pem"),
     Result = oc_certificate:hash_subject_public_key(sha, Cert),
     ?assertEqual(ExpectedHash, Result).
 

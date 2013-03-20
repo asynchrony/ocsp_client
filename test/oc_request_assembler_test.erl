@@ -20,7 +20,7 @@
                             80,251,18,131,108,181,58,173,244,86,90,15,194,16>>).
 
 assemble_request_returns_proper_request_with_nonce_in_bytes() ->
-    ServerCert = test_support:decode_pem_file("servercert.pem"),
+    ServerCert = test_support:decode_pem_entry("servercert.pem"),
     RequestorName = oc_certificate:subject_name(ServerCert),
 
     stub(oc_certificate, subject_name, 1, RequestorName),
