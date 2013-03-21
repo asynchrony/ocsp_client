@@ -34,7 +34,7 @@ teardown(_) ->
 validate_cert_returns_error_when_provider_request_returns_error() ->
     ?expectHttpcToReturn({error, "reason"}),
 
-    Result = oc_validator:validate_cert(peercert, ca_chain, requestor_cert, requestor_key, "provider url"),
+    Result = oc_validator:validate_cert(peercert, ca_chain, va_certs, requestor_cert, requestor_key, "provider url"),
 
     ?assertMatch({error, {ocsp, "reason"}}, Result),
     ?verifyAll.
@@ -42,7 +42,7 @@ validate_cert_returns_error_when_provider_request_returns_error() ->
 validate_cert_returns_error_when_provider_request_returns_non_200_http_code() ->
     ?expectHttpcToReturn({ok, {{version, 500, description}, headers, error_response}}),
 
-    Result = oc_validator:validate_cert(peercert, ca_chain, requestor_cert, requestor_key, "provider url"),
+    Result = oc_validator:validate_cert(peercert, ca_chain, va_certs, requestor_cert, requestor_key, "provider url"),
 
     ?assertMatch({error, {ocsp, {500, description, error_response}}}, Result),
     ?verifyAll.
@@ -50,10 +50,12 @@ validate_cert_returns_error_when_provider_request_returns_non_200_http_code() ->
 validate_cert_returns_validator_result_when_request_returns_200_http_code() ->
     ?expectHttpcToReturn({ok, {{version, 200, description}, headers, ocsp_response}}),
     mock(oc_response_validator, [
-            ?expect(validate, ?withArgs([ocsp_response, cert_id, crypto_nonce]), ?andReturn(validator_result))
+            ?expect(validate,
+                ?withArgs([ocsp_response, va_certs, cert_id, crypto_nonce]),
+                ?andReturn(validator_result))
         ]),
 
-    Result = oc_validator:validate_cert(peercert, ca_chain, requestor_cert, requestor_key, "provider url"),
+    Result = oc_validator:validate_cert(peercert, ca_chain, va_certs, requestor_cert, requestor_key, "provider url"),
 
     ?assertMatch(validator_result, Result),
     ?verifyAll.
