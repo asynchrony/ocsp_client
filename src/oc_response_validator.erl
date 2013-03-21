@@ -1,12 +1,12 @@
 -module(oc_response_validator).
--export([validate/3]).
+-export([validate/4]).
 -include("OCSP.hrl").
 -include_lib("public_key/include/public_key.hrl").
 
 -compile([{parse_transform, do}]).
 -import(error_m, [return/1, fail/1]).
 
-validate(Body, CertID, Nonce) ->
+validate(Body, VACerts, CertID, Nonce) ->
     do([error_m ||
             OCSPResponse  <- 'OCSP':decode('OCSPResponse', Body),
             ResponseBytes <- response_bytes(OCSPResponse),
@@ -34,7 +34,7 @@ validate(Body, CertID, Nonce) ->
             ResponseNonce <- find_nonce(Extensions),
             compare_items(Nonce, ResponseNonce, {ocsp, nonce_mismatch}),
 
-            SignerCert <- find_signer_cert(ResponderID, Certs),
+            SignerCert <- find_signer_cert(ResponderID, VACerts ++ Certs),
 
             %% TODO: pkix_path_validation of SignerCert
             %% TODO: ensure SignerCert is the peer's issuer -OR-
