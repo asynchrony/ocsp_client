@@ -69,3 +69,13 @@ validate_should_return_error_when_cert_status_is_revoked_and_response_does_not_i
         serialNumber = 55976},
     ?assertMatch({error, {ocsp, certificate_revoked}}, oc_response_validator:validate(Response, VACerts, CertID, Nonce)).
 
+validate_should_return_ok_when_cert_status_is_good_and_response_comes_from_RCVS_test() ->
+    Nonce = <<4,16,61,86,141,102,134,155,88,176,119,163,232,128,197,235,133,87>>,
+    Response = test_support:read_data("rcvs_capture_response.der"),
+    CertID = #'CertID'{
+        hashAlgorithm = #'AlgorithmIdentifier'{algorithm=?'id-sha1',parameters = <<5,0>>},
+        issuerNameHash = <<49,67,127,187,231,103,234,41,181,174,185,4,7,198,85,23,232,172,59,55>>,
+        issuerKeyHash  = <<40,48,31,81,81,142,213,221,173,161,203,32,194,88,21,70,48,166,68,79>>,
+        serialNumber = 42634},
+    ?assertMatch(ok, oc_response_validator:validate(Response, [], CertID, Nonce)).
+
