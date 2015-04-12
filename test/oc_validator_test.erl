@@ -4,7 +4,7 @@
 -include_lib("hoax/include/hoax.hrl").
 -include("OCSP.hrl").
 
-?HOAX_FIXTURE(setup, teardown).
+?HOAX_FIXTURE(fun setup/0, fun teardown/1).
 
 setup() ->
     mock(oc_request_assembler, [

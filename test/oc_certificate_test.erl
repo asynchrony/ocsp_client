@@ -1,7 +1,7 @@
 -module(oc_certificate_test).
 
 -compile([export_all]).
--include_lib("test_support/include/test_helper.hrl").
+-include_lib("eunit/include/eunit.hrl").
 -include_lib("public_key/include/public_key.hrl").
 
 

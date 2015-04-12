@@ -1,6 +1,6 @@
 -module(oc_nonce_test).
 
--include_lib("test_support/include/test_helper.hrl").
+-include_lib("eunit/include/eunit.hrl").
 
 -compile([export_all]).
 
