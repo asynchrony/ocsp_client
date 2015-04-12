@@ -1,7 +1,7 @@
 {application, ocsp_client,
  [
   {description, ""},
-  {vsn, {cmd, "%APPLICATION_VSN_CMD%"}},
+  {vsn, git},
   {registered, []},
   {applications, [
                   kernel,
